@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#7c6aff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Signal">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<title>Signal — Forex Monitor</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --text:#f0f0f5;--muted:#6b6b82;--dim:#3a3a50;
+  --accent:#7c6aff;--buy:#00e5a0;--sell:#ff4d6d;--warn:#ffb547;
+  --mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;padding:0 0 100px;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(124,106,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(124,106,255,0.025) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:420px;margin:0 auto;padding:0 16px}
+
+/* SCREENS */
+#setupScreen{display:none}.ascreen{display:block!important}
+
+/* INSTALL BANNER */
+.install-banner{background:rgba(124,106,255,.1);border:1px solid rgba(124,106,255,.3);border-radius:12px;padding:12px 14px;margin-bottom:12px;display:none}
+.install-banner.show{display:flex;gap:10px;align-items:flex-start}
+.install-banner .ico{font-size:20px;flex-shrink:0}
+.install-banner p{font-size:13px;color:var(--muted);line-height:1.5;flex:1}
+.install-banner strong{color:var(--text)}
+.install-banner button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;margin-top:6px}
+
+/* SETUP */
+.setup-hero{padding:36px 0 24px;text-align:center}
+.s-logo{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.14em;margin-bottom:18px}
+.s-title{font-size:22px;font-weight:600;margin-bottom:8px}
+.s-sub{font-size:14px;color:var(--muted);line-height:1.65}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:20px 0 16px}
+.tab{background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:13px;cursor:pointer;text-align:center;transition:all .15s}
+.tab.sel{border-color:var(--accent);background:rgba(124,106,255,.1)}
+.tab:active{transform:scale(.97)}
+.tab-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.tab-sub{font-size:11px;color:var(--muted)}
+.help-box{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--muted);line-height:1.75}
+.help-box strong{color:var(--text);font-weight:500}
+.help-box a{color:var(--accent);text-decoration:none}
+.srow{display:flex;gap:8px;align-items:flex-start;margin-bottom:5px}
+.sn{width:17px;height:17px;border-radius:50%;background:rgba(124,106,255,.18);color:var(--accent);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.field{margin-bottom:13px}
+.flabel{font-size:12px;color:var(--muted);margin-bottom:5px;display:block;font-weight:500}
+.finput{width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:12px 14px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;transition:border-color .2s}
+.finput:focus{border-color:var(--accent)}
+.finput::placeholder{color:var(--muted);font-family:var(--sans)}
+.cta{width:100%;background:var(--accent);color:#fff;font-family:var(--sans);font-size:15px;font-weight:600;border:none;border-radius:12px;padding:15px;cursor:pointer;transition:all .2s}
+.cta:active{transform:scale(.98)}
+.cta:disabled{opacity:.4;pointer-events:none}
+.demo-link{display:block;text-align:center;margin-top:13px;font-size:13px;color:var(--muted);cursor:pointer}
+.demo-link span{color:var(--accent)}
+
+/* HEADER */
+header{padding:18px 0 14px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:var(--mono);font-size:13px;color:var(--accent);letter-spacing:.1em;cursor:pointer}
+.hright{display:flex;align-items:center;gap:10px}
+.pulse{width:8px;height:8px;border-radius:50%;background:var(--buy);animation:pulseG 2s infinite}
+.pulse.off{background:var(--muted);animation:none}
+.pulse.m1on{background:var(--warn);animation:pulseW 1s infinite}
+@keyframes pulseG{0%{box-shadow:0 0 0 0 rgba(0,229,160,.4)}70%{box-shadow:0 0 0 8px rgba(0,229,160,0)}100%{box-shadow:0 0 0 0 rgba(0,229,160,0)}}
+@keyframes pulseW{0%{box-shadow:0 0 0 0 rgba(255,181,71,.5)}70%{box-shadow:0 0 0 7px rgba(255,181,71,0)}100%{box-shadow:0 0 0 0 rgba(255,181,71,0)}}
+.apibadge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;letter-spacing:.06em}
+.blive{background:rgba(0,229,160,.13);color:var(--buy)}
+.bdemo{background:rgba(255,181,71,.13);color:var(--warn)}
+.bbg{background:rgba(124,106,255,.15);color:var(--accent)}
+
+/* NOTIF */
+.notif-wrap{background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;gap:10px;align-items:flex-start}
+.notif-wrap p{font-size:13px;color:var(--muted);line-height:1.5}
+.notif-wrap button.ilink{color:var(--accent);background:none;border:none;font-size:13px;cursor:pointer;padding:0;font-family:var(--sans)}
+
+/* HOURS */
+.hbar{border-radius:10px;padding:9px 14px;margin-bottom:11px;display:flex;align-items:center;justify-content:space-between;font-size:12px}
+.hon{background:rgba(0,229,160,.06);border:1px solid rgba(0,229,160,.18)}
+.hoff{background:rgba(107,107,130,.08);border:1px solid var(--border)}
+.hlbl{color:var(--muted)}.hval{font-family:var(--mono);font-size:11px}
+.hon .hval{color:var(--buy)}.hoff .hval{color:var(--muted)}
+
+/* SCAN STATUS */
+.ss{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:11px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.ssc{text-align:center}
+.sslbl{font-size:10px;color:var(--muted);margin-bottom:3px}
+.ssval{font-family:var(--mono);font-size:12px;color:var(--text)}
+.ssval.active{color:var(--warn)}.ssval.good{color:var(--buy)}
+
+/* BG STATUS */
+.bgstatus{background:rgba(124,106,255,.06);border:1px solid rgba(124,106,255,.2);border-radius:10px;padding:8px 14px;margin-bottom:11px;font-size:12px;color:var(--accent);display:none;align-items:center;justify-content:space-between}
+.bgstatus.show{display:flex}
+
+/* MODE PILLS */
+.mrow{display:flex;gap:7px;margin-bottom:11px}
+.mpill{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 6px;text-align:center;transition:all .2s}
+.mpill.m15on{background:rgba(124,106,255,.1);border-color:var(--accent)}
+.mpill.m1on{background:rgba(255,181,71,.1);border-color:var(--warn)}
+.mplbl{font-size:10px;color:var(--muted);margin-bottom:2px}
+.mpval{font-size:11px;font-family:var(--mono);color:var(--text)}
+.mpill.m15on .mpval{color:var(--accent)}
+.mpill.m1on .mpval{color:var(--warn)}
+
+/* SIGNAL ALERT */
+.siga{border-radius:14px;padding:13px 16px;margin-bottom:11px;display:none}
+.siga.buy{background:rgba(0,229,160,.07);border:1px solid rgba(0,229,160,.3)}
+.siga.sell{background:rgba(255,77,109,.07);border:1px solid rgba(255,77,109,.3)}
+.siga.show{display:block;animation:fup .3s ease}
+@keyframes fup{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+.satitle{font-family:var(--mono);font-size:14px;font-weight:700;margin-bottom:4px}
+.siga.buy .satitle{color:var(--buy)}.siga.sell .satitle{color:var(--sell)}
+.sabody{font-size:12px;color:var(--muted);line-height:1.6}
+.sadismiss{float:right;background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;margin-top:-2px}
+
+/* ERROR */
+.errnote{background:rgba(255,181,71,.07);border:1px solid rgba(255,181,71,.2);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--warn);margin-bottom:10px;display:none;line-height:1.5}
+
+/* PAIR CARDS */
+.pair-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;margin-bottom:10px;overflow:hidden;transition:border-color .3s}
+.pair-card.cbuy{border-color:rgba(0,229,160,.4)}
+.pair-card.csell{border-color:rgba(255,77,109,.4)}
+.pair-card.cm1{border-color:rgba(255,181,71,.45)}
+.ph{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.pinfo{display:flex;align-items:center;gap:10px}
+.picon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.pname{font-family:var(--mono);font-size:15px;font-weight:700;letter-spacing:.04em}
+.pcat{font-size:10px;color:var(--muted);margin-top:1px}
+.pprice{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px;text-align:right}
+.pbadge{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.bb{background:rgba(0,229,160,.15);color:var(--buy)}
+.bs{background:rgba(255,77,109,.15);color:var(--sell)}
+.bw{background:rgba(107,107,130,.15);color:var(--muted)}
+.bl{background:rgba(124,106,255,.12);color:var(--accent)}
+.bm1{background:rgba(255,181,71,.15);color:var(--warn)}
+.phasebar{font-size:10px;font-weight:600;letter-spacing:.08em;padding:5px 16px;background:rgba(255,181,71,.05);color:var(--warn);border-bottom:1px solid rgba(255,181,71,.12)}
+.conds{padding:7px 16px 12px}
+.tflbl{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin:7px 0 5px}
+.crow{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)}
+.crow:last-child{border-bottom:none}
+.cname{color:var(--muted);font-size:12px}
+.cval{font-family:var(--mono);font-size:11px;display:flex;align-items:center;gap:5px}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dok{background:var(--buy)}.dfail{background:rgba(255,77,109,.45)}.dload{background:var(--accent);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* HISTORY TABS */
+.histabs{display:flex;gap:8px;margin-bottom:10px}
+.histab{flex:1;padding:8px;border-radius:8px;text-align:center;font-size:12px;font-weight:500;cursor:pointer;border:0.5px solid var(--border2);background:var(--surface);color:var(--muted);transition:all .15s}
+.histab.active{background:var(--surface2);color:var(--text);border-color:var(--border2)}
+.hitem{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 13px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+.hleft{display:flex;align-items:center;gap:8px}
+.hbadge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;font-family:var(--mono)}
+.hbuy{background:rgba(0,229,160,.15);color:var(--buy)}.hsell{background:rgba(255,77,109,.15);color:var(--sell)}
+.hpair{font-family:var(--mono);font-size:12px;color:var(--text)}
+.htime{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.hfrom{font-size:10px;color:var(--accent);font-family:var(--mono);margin-left:4px}
+.empty{text-align:center;padding:20px;color:var(--muted);font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:12px;line-height:1.6}
+.lastup{text-align:center;font-size:11px;color:var(--muted);font-family:var(--mono);margin:3px 0 16px}
+.chgkey{display:block;text-align:center;font-size:12px;color:var(--muted);margin-bottom:18px;cursor:pointer}
+.chgkey span{color:var(--accent)}
+.sectitle{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:9px}
+
+/* FAB */
+.fab{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-family:var(--sans);font-size:14px;font-weight:600;border:none;border-radius:50px;padding:14px 38px;cursor:pointer;z-index:100;box-shadow:0 4px 20px rgba(124,106,255,.35);transition:all .2s;white-space:nowrap}
+.fab:active{transform:translateX(-50%) scale(.97)}
+.fab:disabled{opacity:.4;pointer-events:none}
+</style>
+</head>
+<body>
+
+<!-- ══ SETUP ══ -->
+<div id="setupScreen">
+<div class="wrap">
+  <div class="setup-hero">
+    <div class="s-logo">⬡ SIGNAL</div>
+    <div class="s-title">Connect live data</div>
+    <div class="s-sub">4 instruments: GBP/USD · USD/JPY · XAU/USD · BTC/USD<br>Scans every 15 min · 3am–6pm · background alerts</div>
+  </div>
+  <div class="tabs">
+    <div class="tab sel" id="tab-twelve" onclick="selProv('twelve')">
+      <div class="tab-name">Twelve Data</div><div class="tab-sub">800 calls/day free</div>
+    </div>
+    <div class="tab" id="tab-alpha" onclick="selProv('alpha')">
+      <div class="tab-name">Alpha Vantage</div><div class="tab-sub">25 calls/day free</div>
+    </div>
+  </div>
+  <div class="help-box" id="helpBox"></div>
+  <div class="field">
+    <label class="flabel">API key</label>
+    <input class="finput" id="keyInput" type="text" placeholder="Paste your key here" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" oninput="valKey()">
+  </div>
+  <button class="cta" id="connectBtn" onclick="doConnect()" disabled>Connect &amp; Start</button>
+  <div class="demo-link" onclick="doDemo()">No key yet? <span>Run in demo mode →</span></div>
+</div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div id="mainScreen" style="display:none">
+<div class="wrap">
+
+  <header>
+    <div class="logo" onclick="goSetup()">⬡ Signal</div>
+    <div class="hright">
+      <span class="apibadge bdemo" id="apiBadge">DEMO</span>
+      <div class="pulse off" id="pulseEl"></div>
+    </div>
+  </header>
+
+  <!-- Install banner -->
+  <div class="install-banner" id="installBanner">
+    <div class="ico">📲</div>
+    <div>
+      <p><strong>Install for background alerts</strong><br>Add to your home screen so the scanner keeps running even when you close Chrome.</p>
+      <button onclick="doInstall()">Install App</button>
+      <button onclick="document.getElementById('installBanner').classList.remove('show')" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;margin-left:8px">Not now</button>
+    </div>
+  </div>
+
+  <!-- Notification -->
+  <div class="notif-wrap" id="notifWrap">
+    <div style="font-size:16px;flex-shrink:0;margin-top:1px">🔔</div>
+    <p><strong style="color:var(--text)">Enable notifications</strong> — required for background alerts when signals fire.<br>
+    <button class="ilink" onclick="askNotif()">Tap here to enable →</button></p>
+  </div>
+
+  <!-- Background sync status -->
+  <div class="bgstatus" id="bgStatus">
+    <span id="bgStatusText">Background scanning active</span>
+    <span style="font-size:10px;opacity:.7">PWA</span>
+  </div>
+
+  <!-- Hours -->
+  <div class="hbar hoff" id="hoursBar">
+    <span class="hlbl" id="hoursLbl">Outside trading window</span>
+    <span class="hval" id="hoursVal">3:00 – 18:00</span>
+  </div>
+
+  <!-- Scan status -->
+  <div class="ss">
+    <div class="ssc"><div class="sslbl">Phase</div><div class="ssval" id="ssPhase">—</div></div>
+    <div class="ssc"><div class="sslbl">Next M15</div><div class="ssval" id="ssNext">—</div></div>
+    <div class="ssc"><div class="sslbl">API calls</div><div class="ssval good" id="ssCalls">0</div></div>
+  </div>
+
+  <!-- Mode pills -->
+  <div class="mrow">
+    <div class="mpill" id="pillM15"><div class="mplbl">M15 scan</div><div class="mpval">every 15 min</div></div>
+    <div class="mpill" id="pillM1"><div class="mplbl">M1 scan</div><div class="mpval" id="pillM1v">waiting…</div></div>
+  </div>
+
+  <!-- Signal alert -->
+  <div class="siga" id="sigAlert">
+    <button class="sadismiss" onclick="dismissAlert()">✕</button>
+    <div class="satitle" id="saTitle"></div>
+    <div class="sabody" id="saBody"></div>
+  </div>
+
+  <div class="errnote" id="errNote"></div>
+
+  <!-- Cards -->
+  <div id="cards"></div>
+
+  <div class="lastup" id="lastUp">—</div>
+  <a class="chgkey" onclick="goSetup()">⚙ Change provider / API key <span>→</span></a>
+
+  <!-- History with tabs -->
+  <div class="sectitle">Signal history</div>
+  <div class="histabs">
+    <div class="histab active" id="tab-all" onclick="showHistTab('all')">All signals</div>
+    <div class="histab" id="tab-missed" onclick="showHistTab('missed')">Missed (background)</div>
+  </div>
+  <div id="histList"><div class="empty">No signals yet — scanner will alert you.</div></div>
+
+</div>
+</div>
+
+<button class="fab" id="fab" onclick="manualScan()" style="display:none">Scan Now</button>
+
+<script>
+// ═══════════════════════════════════════════════════
+// INSTRUMENTS
+// ═══════════════════════════════════════════════════
+const INSTRUMENTS = {
+  GBPUSD:{label:'GBP/USD',cat:'Forex',icon:'💷',dp:4,twelveSymbol:'GBP/USD',alphaFrom:'GBP',alphaTo:'USD'},
+  USDJPY:{label:'USD/JPY',cat:'Forex',icon:'💴',dp:2,twelveSymbol:'USD/JPY',alphaFrom:'USD',alphaTo:'JPY'},
+  XAUUSD:{label:'XAU/USD',cat:'Gold', icon:'🥇',dp:2,twelveSymbol:'XAU/USD',alphaFrom:'XAU',alphaTo:'USD'},
+  BTCUSD:{label:'BTC/USD',cat:'Crypto',icon:'₿',dp:0,twelveSymbol:'BTC/USD',alphaCrypto:'BTC',alphaMarket:'USD'},
+};
+const PAIRS=Object.keys(INSTRUMENTS);
+const RSI_P=6,OB=70,OS=30,EF=100,ES=200;
+const TRADE_START=3,TRADE_END=18;
+const M15_MS=15*60*1000,M1_MS=60*1000,M1_TIMEOUT=30*60*1000;
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let provider='twelve',apiKey='',demoMode=false;
+let notifGranted=false,audioCtx=null;
+let m15Timer=null,m1Timer=null,cdTicker=null;
+let nextM15At=0,m1StartedAt=0,apiCalls=0,lastAlerted={};
+let swReg=null,installPrompt=null;
+let histTab='all';
+
+// ═══════════════════════════════════════════════════
+// INDEXEDDB
+// ═══════════════════════════════════════════════════
+let db=null;
+function openDB(){
+  return new Promise((res,rej)=>{
+    const req=indexedDB.open('SignalDB',2);
+    req.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains('signals')){
+        const s=d.createObjectStore('signals',{keyPath:'id',autoIncrement:true});
+        s.createIndex('time','time');
+      }
+      if(!d.objectStoreNames.contains('config')){
+        d.createObjectStore('config',{keyPath:'key'});
+      }
+    };
+    req.onsuccess=e=>{db=e.target.result;res(db);};
+    req.onerror=e=>rej(e.target.error);
+  });
+}
+async function dbGet(store,key){
+  const d=db||await openDB();
+  return new Promise((res,rej)=>{
+    const req=d.transaction(store,'readonly').objectStore(store).get(key);
+    req.onsuccess=()=>res(req.result?.value??req.result??null);
+    req.onerror=()=>rej(req.error);
+  });
+}
+async function dbPut(store,key,value){
+  const d=db||await openDB();
+  return new Promise((res,rej)=>{
+    const tx=d.transaction(store,'readwrite');
+    tx.objectStore(store).put(store==='config'?{key,value}:{...value,id:key});
+    tx.oncomplete=res;tx.onerror=()=>rej(tx.error);
+  });
+}
+async function dbAdd(store,value){
+  const d=db||await openDB();
+  return new Promise((res,rej)=>{
+    const tx=d.transaction(store,'readwrite');
+    const req=tx.objectStore(store).add(value);
+    tx.oncomplete=()=>res(req.result);
+    tx.onerror=()=>rej(tx.error);
+  });
+}
+async function dbGetAll(store){
+  const d=db||await openDB();
+  return new Promise((res,rej)=>{
+    const req=d.transaction(store,'readonly').objectStore(store).getAll();
+    req.onsuccess=()=>res(req.result);
+    req.onerror=()=>rej(req.error);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// SERVICE WORKER + PWA
+// ═══════════════════════════════════════════════════
+async function registerSW(){
+  if(!('serviceWorker' in navigator)) return;
+  try{
+    swReg=await navigator.serviceWorker.register('./sw.js',{scope:'./'});
+    console.log('[App] SW registered');
+    // Check for periodic sync support
+    if('periodicSync' in swReg){
+      try{
+        const status=await navigator.permissions.query({name:'periodic-background-sync'});
+        if(status.state==='granted'){
+          await swReg.periodicSync.register('market-scan-periodic',{minInterval:15*60*1000});
+          document.getElementById('bgStatus').classList.add('show');
+          document.getElementById('bgStatusText').textContent='Background scanning active — you will get alerts even when app is closed';
+          document.getElementById('apiBadge').className='apibadge bbg';
+          document.getElementById('apiBadge').textContent='BACKGROUND';
+        }
+      }catch(e){console.log('[App] Periodic sync not available:',e.message);}
+    }
+  }catch(e){console.warn('[App] SW registration failed:',e);}
+}
+
+// Install prompt
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();installPrompt=e;
+  document.getElementById('installBanner').classList.add('show');
+});
+async function doInstall(){
+  if(!installPrompt) return;
+  installPrompt.prompt();
+  const {outcome}=await installPrompt.userChoice;
+  if(outcome==='accepted'){
+    document.getElementById('installBanner').classList.remove('show');
+    installPrompt=null;
+  }
+}
+window.addEventListener('appinstalled',()=>{
+  document.getElementById('installBanner').classList.remove('show');
+  installPrompt=null;
+});
+
+// ═══════════════════════════════════════════════════
+// SETUP
+// ═══════════════════════════════════════════════════
+const HELP={
+  twelve:{steps:[
+    'Go to <a href="https://twelvedata.com" target="_blank">twelvedata.com</a> → <strong>Get free API key</strong>',
+    'Create free account — no credit card needed',
+    'Copy key from your dashboard',
+    'Free: <strong>800 calls/day</strong> — app uses ~150/day for 4 instruments'
+  ]},
+  alpha:{steps:[
+    'Go to <a href="https://www.alphavantage.co/support/#api-key" target="_blank">alphavantage.co</a> and fill the form',
+    'Key arrives by email instantly',
+    'Free: <strong>25 calls/day</strong> — manual scanning only with 4 pairs',
+    'Twelve Data strongly recommended for auto scanning'
+  ]}
+};
+function renderHelp(){
+  document.getElementById('helpBox').innerHTML=
+    '<strong style="color:var(--text);display:block;margin-bottom:7px">How to get a free key:</strong>'+
+    HELP[provider].steps.map((s,i)=>`<div class="srow"><span class="sn">${i+1}</span><span>${s}</span></div>`).join('');
+}
+function selProv(p){
+  provider=p;
+  document.getElementById('tab-twelve').classList.toggle('sel',p==='twelve');
+  document.getElementById('tab-alpha').classList.toggle('sel',p==='alpha');
+  renderHelp();valKey();
+}
+function valKey(){
+  document.getElementById('connectBtn').disabled=document.getElementById('keyInput').value.trim().length<8;
+}
+async function doConnect(){
+  apiKey=document.getElementById('keyInput').value.trim();
+  demoMode=false;
+  const cfg={apiKey,provider,demoMode,lastAlerted:{}};
+  await dbPut('config','app',cfg);
+  launchMain();
+}
+async function doDemo(){
+  demoMode=true;apiKey='';
+  const cfg={apiKey:'',provider,demoMode:true,lastAlerted:{}};
+  await dbPut('config','app',cfg);
+  launchMain();
+}
+function goSetup(){
+  stopAll();
+  document.getElementById('setupScreen').classList.add('ascreen');
+  document.getElementById('mainScreen').style.display='none';
+  document.getElementById('fab').style.display='none';
+}
+function launchMain(){
+  document.getElementById('setupScreen').classList.remove('ascreen');
+  document.getElementById('mainScreen').style.display='block';
+  document.getElementById('fab').style.display='block';
+  const b=document.getElementById('apiBadge');
+  if(demoMode){b.textContent='DEMO';b.className='apibadge bdemo';}
+  else{b.textContent=provider==='twelve'?'TWELVE DATA':'ALPHA VANTAGE';b.className='apibadge blive';}
+  buildCards();checkNotifState();startScheduler();
+}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+window.onload=async()=>{
+  renderHelp();
+  await openDB();
+  await registerSW();
+  renderHistory();
+  setInterval(updateHoursBar,30000);
+  // Load saved config
+  const cfg=await dbGet('config','app');
+  if(cfg&&cfg.apiKey){
+    apiKey=cfg.apiKey;provider=cfg.provider||'twelve';demoMode=cfg.demoMode||false;
+    selProv(provider);
+    document.getElementById('keyInput').value=apiKey;
+    launchMain();
+  } else if(cfg&&cfg.demoMode){
+    demoMode=true;launchMain();
+  } else {
+    document.getElementById('setupScreen').classList.add('ascreen');
+  }
+  // Check if launched via notification tap
+  const params=new URLSearchParams(location.search);
+  if(params.get('action')==='scan') setTimeout(manualScan,1000);
+};
+
+// ═══════════════════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════════════════
+function checkNotifState(){
+  if(!('Notification' in window)){document.getElementById('notifWrap').style.display='none';return;}
+  if(Notification.permission==='granted'){
+    notifGranted=true;document.getElementById('notifWrap').style.display='none';
+  }
+}
+async function askNotif(){
+  if(!('Notification' in window)){
+    alert('Your browser does not support notifications. On-screen alerts will still appear.');return;
+  }
+  try{
+    const p=await Notification.requestPermission();
+    if(p==='granted'){
+      notifGranted=true;
+      document.getElementById('notifWrap').style.display='none';
+      unlockAudio();
+      new Notification('Signal app ready',{
+        body:'Background alerts enabled. You will be notified of signals across all 4 instruments.',
+        icon:'./icon-192.png'
+      });
+    } else {
+      document.getElementById('notifWrap').querySelector('p').innerHTML=
+        '<strong style="color:var(--warn)">Notifications blocked.</strong> Go to Chrome → tap the lock icon in the address bar → Permissions → Notifications → Allow. Then reload.';
+    }
+  }catch(e){}
+}
+function unlockAudio(){
+  try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();}catch(e){}
+}
+function fireNotif(title,body,type){
+  showSigAlert(title,body,type);
+  if(notifGranted){
+    try{
+      new Notification(title,{
+        body,icon:'./icon-192.png',badge:'./icon-192.png',
+        tag:type,renotify:true,requireInteraction:true,
+        vibrate:[200,100,200,100,400]
+      });
+    }catch(e){}
+  }
+  playBeep(type==='BUY'?880:440);
+}
+function playBeep(freq){
+  try{
+    if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended')audioCtx.resume();
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.connect(g);g.connect(audioCtx.destination);o.frequency.value=freq;o.type='sine';
+    const t=audioCtx.currentTime;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.35,t+0.05);g.gain.exponentialRampToValueAtTime(0.001,t+0.9);
+    o.start(t);o.stop(t+0.9);
+  }catch(e){}
+}
+
+// ═══════════════════════════════════════════════════
+// HOURS
+// ═══════════════════════════════════════════════════
+function isInHours(){const h=new Date().getHours();return h>=TRADE_START&&h<TRADE_END;}
+function updateHoursBar(){
+  const bar=document.getElementById('hoursBar');
+  const now=new Date(),h=now.getHours(),m=now.getMinutes();
+  const ts=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  if(isInHours()){
+    bar.className='hbar hon';
+    document.getElementById('hoursLbl').textContent='Trading window active — '+ts;
+    document.getElementById('hoursVal').textContent='3:00 – 18:00';
+  } else {
+    bar.className='hbar hoff';
+    document.getElementById('hoursLbl').textContent='Outside window — '+ts;
+    document.getElementById('hoursVal').textContent='Resumes 3:00';
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// SCHEDULER
+// ═══════════════════════════════════════════════════
+function stopAll(){
+  clearTimeout(m15Timer);clearInterval(m1Timer);clearInterval(cdTicker);
+  m15Timer=null;m1Timer=null;cdTicker=null;
+  document.getElementById('pulseEl').className='pulse off';
+  document.getElementById('ssPhase').textContent='—';
+  document.getElementById('ssNext').textContent='—';
+  document.getElementById('pillM15').classList.remove('m15on');
+  document.getElementById('pillM1').classList.remove('m1on');
+  document.getElementById('pillM1v').textContent='waiting…';
+  PAIRS.forEach(p=>{
+    const c=document.getElementById('card-'+p);if(c)c.classList.remove('cm1');
+    const pb=document.getElementById('pbar-'+p);if(pb)pb.remove();
+  });
+}
+function startScheduler(){
+  stopAll();updateHoursBar();
+  document.getElementById('pulseEl').className='pulse';
+  document.getElementById('pillM15').classList.add('m15on');
+  scheduleM15(true);
+}
+function scheduleM15(immediate=false){
+  clearTimeout(m15Timer);
+  if(immediate){runM15Scan();}
+  else{
+    nextM15At=Date.now()+M15_MS;
+    startCd();
+    m15Timer=setTimeout(()=>runM15Scan(),M15_MS);
+  }
+}
+function startCd(){
+  clearInterval(cdTicker);
+  cdTicker=setInterval(()=>{
+    const rem=Math.max(0,nextM15At-Date.now());
+    if(rem===0){clearInterval(cdTicker);document.getElementById('ssNext').textContent='now';return;}
+    const mn=Math.floor(rem/60000),sc=Math.floor((rem%60000)/1000);
+    document.getElementById('ssNext').textContent=`${mn}:${String(sc).padStart(2,'0')}`;
+  },1000);
+}
+
+// ═══════════════════════════════════════════════════
+// PHASE 1 — M15
+// ═══════════════════════════════════════════════════
+async function runM15Scan(){
+  document.getElementById('ssPhase').textContent='M15';
+  document.getElementById('pillM15').classList.add('m15on');
+  if(!isInHours()){
+    document.getElementById('lastUp').textContent='Outside 3am–6pm — next check in 10 min';
+    m15Timer=setTimeout(()=>scheduleM15(true),10*60*1000);return;
+  }
+  PAIRS.forEach(p=>setCardLoading(p));
+  const cache={};
+  for(const pair of PAIRS){
+    try{
+      const m15=await fetchCandles(pair,'15min',250);
+      cache[pair]=analyzeM15(m15,pair);
+      renderM15Card(pair,cache[pair]);
+    }catch(e){showErr(INSTRUMENTS[pair].label+' M15: '+e.message);cache[pair]=null;}
+  }
+  const watchList=PAIRS.filter(p=>cache[p]&&(cache[p].buyReady||cache[p].sellReady));
+  if(watchList.length>0){startM1Phase(watchList,cache);}
+  else{scheduleM15(false);}
+  showLastUp();
+}
+
+// ═══════════════════════════════════════════════════
+// PHASE 2 — M1
+// ═══════════════════════════════════════════════════
+function startM1Phase(pairs,cache){
+  clearInterval(m1Timer);
+  m1StartedAt=Date.now();
+  document.getElementById('ssPhase').textContent='M1';
+  document.getElementById('pillM1').classList.add('m1on');
+  document.getElementById('pillM1v').textContent='scanning…';
+  document.getElementById('pulseEl').className='pulse m1on';
+  pairs.forEach(p=>{
+    document.getElementById('card-'+p).classList.add('cm1');
+    if(!document.getElementById('pbar-'+p)){
+      const ph=document.getElementById('card-'+p).querySelector('.ph');
+      const bar=document.createElement('div');
+      bar.className='phasebar';bar.id='pbar-'+p;
+      bar.textContent='M1 SCANNING — WAITING FOR ENTRY CONFIRMATION';
+      ph.insertAdjacentElement('afterend',bar);
+    }
+  });
+  runM1Scan(pairs,cache);
+  m1Timer=setInterval(()=>{
+    if(Date.now()-m1StartedAt>M1_TIMEOUT||!isInHours()){
+      stopM1Phase();scheduleM15(false);return;
+    }
+    runM1Scan(pairs,cache);
+  },M1_MS);
+  nextM15At=Date.now()+M15_MS;
+  startCd();
+  m15Timer=setTimeout(()=>{stopM1Phase();scheduleM15(true);},M15_MS);
+}
+function stopM1Phase(){
+  clearInterval(m1Timer);m1Timer=null;
+  document.getElementById('pillM1').classList.remove('m1on');
+  document.getElementById('pillM1v').textContent='waiting…';
+  document.getElementById('pulseEl').className='pulse';
+  PAIRS.forEach(p=>{
+    const c=document.getElementById('card-'+p);if(c)c.classList.remove('cm1');
+    const pb=document.getElementById('pbar-'+p);if(pb)pb.remove();
+  });
+}
+async function runM1Scan(pairs,cache){
+  for(const pair of pairs){
+    try{
+      const m1=await fetchCandles(pair,'1min',60);
+      const r=analyzeM1(m1,cache[pair]);
+      renderFullCard(pair,r,cache[pair]);
+      const now=Date.now(),cool=5*60*1000;
+      const type=r.buySignal?'BUY':r.sellSignal?'SELL':null;
+      if(type){
+        const key=pair+'_'+type;
+        if(!lastAlerted[key]||now-lastAlerted[key]>cool){
+          lastAlerted[key]=now;
+          const ins=INSTRUMENTS[pair];
+          const emoji=type==='BUY'?'🟢':'🔴';
+          fireNotif(
+            `${emoji} ${type} — ${ins.label}`,
+            type==='BUY'
+              ?`All 6 conditions met on ${ins.label}. Uptrend M15, RSI oversold M15+M1, higher low + higher high (body). Consider LONG.`
+              :`All 6 conditions met on ${ins.label}. Downtrend M15, RSI overbought M15+M1, lower high + lower low (body). Consider SHORT.`,
+            type
+          );
+          await saveSignal({type,pair,fromBg:false});
+        }
+      }
+    }catch(e){showErr(INSTRUMENTS[pair].label+' M1: '+e.message);}
+  }
+  showLastUp();
+}
+async function manualScan(){
+  stopAll();
+  document.getElementById('pulseEl').className='pulse';
+  document.getElementById('pillM15').classList.add('m15on');
+  await runM15Scan();
+}
+
+// ═══════════════════════════════════════════════════
+// SIGNAL STORAGE
+// ═══════════════════════════════════════════════════
+async function saveSignal(sig){
+  const entry={
+    type:sig.type, pair:sig.pair, fromBg:sig.fromBg||false,
+    time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+    date:new Date().toLocaleDateString([],{day:'2-digit',month:'short'}),
+    savedAt:Date.now()
+  };
+  await dbAdd('signals',entry);
+  renderHistory();
+}
+
+// ═══════════════════════════════════════════════════
+// INDICATORS
+// ═══════════════════════════════════════════════════
+function ema(d,p){const k=2/(p+1);let e=d[0];const r=[e];for(let i=1;i<d.length;i++){e=d[i]*k+e*(1-k);r.push(e);}return r;}
+function rsi(d,p){
+  if(d.length<p+1)return Array(d.length).fill(50);
+  const r=Array(p).fill(50);let g=0,l=0;
+  for(let i=1;i<=p;i++){const x=d[i]-d[i-1];x>=0?g+=x:l-=x;}
+  let ag=g/p,al=l/p;r.push(al===0?100:100-100/(1+ag/al));
+  for(let i=p+1;i<d.length;i++){
+    const x=d[i]-d[i-1],gx=x>0?x:0,lx=x<0?-x:0;
+    ag=(ag*(p-1)+gx)/p;al=(al*(p-1)+lx)/p;
+    r.push(al===0?100:100-100/(1+ag/al));
+  }return r;
+}
+function analyzeM15(m15,pair){
+  const dp=INSTRUMENTS[pair].dp;
+  const c=m15.map(x=>x.close),e100=ema(c,EF),e200=ema(c,ES),r15=rsi(c,RSI_P);
+  const n=m15.length-1,price=c[n],e1=e100[n],e2=e200[n],rv=r15[n],lc=m15[n];
+  const bull=price>e1&&price>e2,bear=price<e1&&price<e2;
+  const os=rv<OS,ob=rv>OB,green=lc.close>lc.open,red=lc.close<lc.open;
+  return{
+    price,e1,e2,rv,bull,bear,os,ob,green,red,
+    buyReady:bull&&os&&green,sellReady:bear&&ob&&red,
+    buyConds:[
+      {l:'Price above EMA 100 & 200',ok:bull,v:`${price.toFixed(dp)} > ${e1.toFixed(dp)}`},
+      {l:'RSI(6) oversold',ok:os,v:rv.toFixed(1)+' < 30'},
+      {l:'Green candle closed',ok:green,v:green?'Yes':'No'},
+    ],
+    sellConds:[
+      {l:'Price below EMA 100 & 200',ok:bear,v:`${price.toFixed(dp)} < ${e2.toFixed(dp)}`},
+      {l:'RSI(6) overbought',ok:ob,v:rv.toFixed(1)+' > 70'},
+      {l:'Red candle closed',ok:red,v:red?'Yes':'No'},
+    ]
+  };
+}
+function analyzeM1(m1,m15r){
+  const c=m1.map(x=>x.close),r1=rsi(c,RSI_P);
+  const n=m1.length-1,rv=r1[n],cur=m1[n],prv=m1[n-1];
+  const cBL=Math.min(cur.open,cur.close),pBL=Math.min(prv.open,prv.close);
+  const cBH=Math.max(cur.open,cur.close),pBH=Math.max(prv.open,prv.close);
+  const hl=cBL>pBL,hh=cur.close>prv.close&&cur.close>cur.open;
+  const lh=cBH<pBH,ll=cur.close<prv.close&&cur.close<cur.open;
+  const m1os=rv<OS,m1ob=rv>OB;
+  return{
+    rv,m1os,m1ob,hl,hh,lh,ll,
+    buySignal:m15r.buyReady&&m1os&&hl&&hh,
+    sellSignal:m15r.sellReady&&m1ob&&lh&&ll,
+    buyConds:[
+      {l:'RSI(6) oversold on M1',ok:m1os,v:rv.toFixed(1)+' < 30'},
+      {l:'Higher low (body only)',ok:hl,v:hl?'Yes':'No'},
+      {l:'Higher high (body close)',ok:hh,v:hh?'Yes':'No'},
+    ],
+    sellConds:[
+      {l:'RSI(6) overbought on M1',ok:m1ob,v:rv.toFixed(1)+' > 70'},
+      {l:'Lower high (body only)',ok:lh,v:lh?'Yes':'No'},
+      {l:'Lower low (body close)',ok:ll,v:ll?'Yes':'No'},
+    ]
+  };
+}
+
+// ═══════════════════════════════════════════════════
+// FETCH
+// ═══════════════════════════════════════════════════
+async function fetchCandles(pair,interval,count){
+  apiCalls++;document.getElementById('ssCalls').textContent=apiCalls;
+  if(demoMode)return genDemo(pair,count);
+  try{
+    return provider==='twelve'?await fetchTwelve(pair,interval,count):await fetchAlpha(pair,interval,count);
+  }catch(e){
+    showErr(INSTRUMENTS[pair].label+' ('+interval+'): '+e.message+' — demo data used');
+    return genDemo(pair,count);
+  }
+}
+async function fetchTwelve(pair,interval,count){
+  const sym=encodeURIComponent(INSTRUMENTS[pair].twelveSymbol);
+  const url=`https://api.twelvedata.com/time_series?symbol=${sym}&interval=${interval}&outputsize=${count}&apikey=${apiKey}&format=JSON`;
+  const j=await(await fetch(url,{signal:AbortSignal.timeout(14000)})).json();
+  if(j.status==='error')throw new Error(j.message);
+  if(!j.values?.length)throw new Error('No data returned');
+  return j.values.reverse().map(c=>({open:+c.open,high:+c.high,low:+c.low,close:+c.close}));
+}
+async function fetchAlpha(pair,interval,count){
+  const ins=INSTRUMENTS[pair];
+  const av=interval==='1min'?'1min':'15min';
+  const url=pair==='BTCUSD'
+    ?`https://www.alphavantage.co/query?function=CRYPTO_INTRADAY&symbol=${ins.alphaCrypto}&market=${ins.alphaMarket}&interval=${av}&outputsize=full&apikey=${apiKey}`
+    :`https://www.alphavantage.co/query?function=FX_INTRADAY&from_symbol=${ins.alphaFrom}&to_symbol=${ins.alphaTo}&interval=${av}&outputsize=full&apikey=${apiKey}`;
+  const j=await(await fetch(url,{signal:AbortSignal.timeout(18000)})).json();
+  const key=pair==='BTCUSD'?`Time Series Crypto (${av})`:`Time Series FX (${av})`;
+  if(!j[key])throw new Error((j['Note']||j['Information']||'Check your API key').slice(0,100));
+  return Object.entries(j[key]).sort((a,b)=>a[0].localeCompare(b[0])).slice(-count)
+    .map(([,v])=>({open:+v['1. open'],high:+v['2. high'],low:+v['3. low'],close:+v['4. close']}));
+}
+function genDemo(pair,n){
+  const bases={GBPUSD:1.27,USDJPY:149.5,XAUUSD:2320,BTCUSD:67000};
+  const vols={GBPUSD:0.0008,USDJPY:0.12,XAUUSD:3.5,BTCUSD:250};
+  let p=bases[pair]||1;const vol=vols[pair]||1;
+  return Array(n).fill(0).map(()=>{
+    const o=p,c=p+=(Math.random()-.47)*vol;
+    return{open:o,high:Math.max(o,c)+Math.random()*vol*.3,low:Math.min(o,c)-Math.random()*vol*.3,close:c};
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════
+function buildCards(){
+  document.getElementById('cards').innerHTML=PAIRS.map(pair=>{
+    const ins=INSTRUMENTS[pair];
+    return `<div class="pair-card" id="card-${pair}">
+      <div class="ph">
+        <div class="pinfo">
+          <div class="picon">${ins.icon}</div>
+          <div><div class="pname">${ins.label}</div><div class="pcat">${ins.cat}</div></div>
+        </div>
+        <div style="text-align:right">
+          <div class="pbadge bl" id="badge-${pair}">Waiting</div>
+          <div class="pprice" id="pr-${pair}">—</div>
+        </div>
+      </div>
+      <div class="conds"><div id="m15c-${pair}"></div><div id="m1c-${pair}"></div></div>
+    </div>`;
+  }).join('');
+}
+function rowsHTML(conds){
+  return conds.map(c=>`<div class="crow"><span class="cname">${c.l}</span><span class="cval"><span class="dot ${c.ok?'dok':'dfail'}"></span>${c.v}</span></div>`).join('');
+}
+function loadRowsHTML(n){
+  return Array(n).fill(0).map(()=>`<div class="crow"><span class="cname" style="color:var(--dim)">Checking…</span><span class="cval"><span class="dot dload"></span>—</span></div>`).join('');
+}
+function setCardLoading(pair){
+  document.getElementById('badge-'+pair).className='pbadge bl';
+  document.getElementById('badge-'+pair).textContent='Scanning';
+  document.getElementById('pr-'+pair).textContent='—';
+  document.getElementById('m15c-'+pair).innerHTML='<div class="tflbl">M15 — Trend &amp; setup</div>'+loadRowsHTML(3);
+  document.getElementById('m1c-'+pair).innerHTML='';
+}
+function formatPrice(price,pair){
+  const dp=INSTRUMENTS[pair].dp;
+  return dp===0?'$'+Math.round(price).toLocaleString():price.toFixed(dp);
+}
+function renderM15Card(pair,r){
+  document.getElementById('pr-'+pair).textContent=formatPrice(r.price,pair);
+  const card=document.getElementById('card-'+pair),badge=document.getElementById('badge-'+pair);
+  card.classList.remove('cbuy','csell','cm1');
+  const conds=r.sellReady?r.sellConds:r.buyConds;
+  if(r.buyReady||r.sellReady){badge.className='pbadge bm1';badge.textContent='M1 Watch';card.classList.add('cm1');}
+  else{badge.className='pbadge bw';badge.textContent='Watching';}
+  document.getElementById('m15c-'+pair).innerHTML='<div class="tflbl">M15 — Trend &amp; setup</div>'+rowsHTML(conds);
+  document.getElementById('m1c-'+pair).innerHTML=(r.buyReady||r.sellReady)
+    ?'<div class="tflbl" style="margin-top:7px;color:var(--warn)">M1 — Waiting for entry…</div>'+loadRowsHTML(3):'';
+}
+function renderFullCard(pair,m1r,m15r){
+  document.getElementById('pr-'+pair).textContent=formatPrice(m15r.price,pair);
+  const card=document.getElementById('card-'+pair),badge=document.getElementById('badge-'+pair);
+  card.classList.remove('cbuy','csell','cm1');
+  if(m1r.buySignal){badge.className='pbadge bb';badge.textContent='▲ BUY';card.classList.add('cbuy');}
+  else if(m1r.sellSignal){badge.className='pbadge bs';badge.textContent='▼ SELL';card.classList.add('csell');}
+  else{badge.className='pbadge bm1';badge.textContent='M1 Watch';}
+  document.getElementById('m15c-'+pair).innerHTML='<div class="tflbl">M15 — Trend &amp; setup</div>'+rowsHTML(m15r.sellReady?m15r.sellConds:m15r.buyConds);
+  document.getElementById('m1c-'+pair).innerHTML='<div class="tflbl" style="margin-top:7px">M1 — Entry confirmation</div>'+rowsHTML(m1r.sellSignal?m1r.sellConds:m1r.buyConds);
+}
+
+// ═══════════════════════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════════════════════
+function showHistTab(tab){
+  histTab=tab;
+  document.getElementById('tab-all').classList.toggle('active',tab==='all');
+  document.getElementById('tab-missed').classList.toggle('active',tab==='missed');
+  renderHistory();
+}
+async function renderHistory(){
+  const el=document.getElementById('histList');
+  try{
+    const all=await dbGetAll('signals');
+    const filtered=histTab==='missed'?all.filter(s=>s.fromBg):all;
+    if(!filtered.length){
+      el.innerHTML=histTab==='missed'
+        ?'<div class="empty">No missed signals yet.<br>These appear when the service worker detects a signal while the app is closed.</div>'
+        :'<div class="empty">No signals yet — scanner will alert you.</div>';
+      return;
+    }
+    el.innerHTML=filtered.slice().reverse().slice(0,50).map(s=>{
+      const ins=INSTRUMENTS[s.pair]||{label:s.pair,icon:'?'};
+      return `<div class="hitem">
+        <div class="hleft">
+          <span class="hbadge ${s.type==='BUY'?'hbuy':'hsell'}">${s.type==='BUY'?'▲':'▼'} ${s.type}</span>
+          <span class="hpair">${ins.icon} ${ins.label}</span>
+          ${s.fromBg?'<span class="hfrom">BG</span>':''}
+        </div>
+        <span class="htime">${s.date||''} ${s.time}</span>
+      </div>`;
+    }).join('');
+  }catch(e){el.innerHTML='<div class="empty">Could not load history.</div>';}
+}
+
+// ═══════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════
+function showSigAlert(title,body,type){
+  const el=document.getElementById('sigAlert');
+  el.className='siga show '+(type==='BUY'?'buy':'sell');
+  document.getElementById('saTitle').textContent=title;
+  document.getElementById('saBody').textContent=body;
+}
+function dismissAlert(){document.getElementById('sigAlert').className='siga';}
+function showErr(msg){
+  const e=document.getElementById('errNote');e.style.display='block';e.textContent='⚠ '+msg;
+  setTimeout(()=>e.style.display='none',9000);
+}
+function showLastUp(){
+  document.getElementById('lastUp').textContent='Last scan: '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+</script>
+</body>
+</html>
